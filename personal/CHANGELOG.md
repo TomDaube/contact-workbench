@@ -1,0 +1,13 @@
+# Personal Contact Workbench: change log
+
+The Personal edition is a clean copy for friends and family: Apple and Android (Google) address books only. It has its own version numbers, separate from the Work edition. It is built from the Work file by build-personal.py, which removes everything work related, and personal-check.js sweeps every screen and help topic for leftovers.
+
+## Version 1.1 (Nov 14, 2026)
+- Private saving: each person who opens the app saves their contacts in their own private space in their Claude account (not the shared file store). Nobody else can see them, not even the person who shared the app.
+- If the app can't save there (for example it was shared to view only), the cloud badge says Saved on this device only and contacts stay in that browser.
+- Help › Where your contacts are kept explains this.
+
+## Version 1.0 (Nov 14, 2026)
+- First version, made from Work edition v155.
+- Removed: Zoho (including the connector code), NetSuite and sales, customers and leads, work contacts and their settings, Exchange and Outlook wording, and every business detail (company name, NetSuite link, jeweler wording in the AI tidy-up).
+- Kept: import of Apple .vcf and Google CSV files, duplicates and merging, clean-up checks, notes and address tidying, groups and tags, archive, photos, and Apple and Google exports.
