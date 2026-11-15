@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 160 (Nov 15, 2026)
+- Removed the Start over button (Remove all…) from Settings and from Step 1, so everything can't be wiped by mistake.
+
 ## Version 159 (Nov 15, 2026)
 - Buttons are a little shorter and no longer bold (Reset, Search, Choose files and the rest).
 - New Button size slider in Settings › Appearance (Clean style), 75% to 125%, default 90%.
