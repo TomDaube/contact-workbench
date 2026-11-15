@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 162 (Nov 15, 2026)
+- New Dark charcoal color in Settings › Appearance › Color (#2b2d31; a softer gray in dark mode).
+
 ## Version 161 (Nov 15, 2026)
 - Use Zoho contacts is now a calm gray button like the others (no orange, same size as Zoho leads).
 

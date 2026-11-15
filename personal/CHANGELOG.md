@@ -2,6 +2,9 @@
 
 The Personal edition is a clean copy for friends and family: Apple and Android (Google) address books only. It has its own version numbers, separate from the Work edition. It is built from the Work file by build-personal.py, which removes everything work related, and personal-check.js sweeps every screen and help topic for leftovers.
 
+## Version 1.6 (Nov 15, 2026)
+- New Dark charcoal color in Settings › Appearance › Color (#2b2d31; a softer gray in dark mode).
+
 ## Version 1.5 (Nov 15, 2026)
 - Removed the Start over button (Remove all…) from Settings and from Step 1, so everything can't be wiped by mistake.
 
