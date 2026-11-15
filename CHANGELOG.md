@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 163 (Nov 15, 2026)
+- Format filter: new Only in one (e.g. Only in Exchange) and In one, not the other (e.g. Exchange, not in Zoho) sections, alongside In both.
+
 ## Version 162 (Nov 15, 2026)
 - New Dark charcoal color in Settings › Appearance › Color (#2b2d31; a softer gray in dark mode).
 
