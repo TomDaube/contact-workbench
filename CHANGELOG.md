@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 161 (Nov 15, 2026)
+- Use Zoho contacts is now a calm gray button like the others (no orange, same size as Zoho leads).
+
 ## Version 160 (Nov 15, 2026)
 - Removed the Start over button (Remove all…) from Settings and from Step 1, so everything can't be wiped by mistake.
 

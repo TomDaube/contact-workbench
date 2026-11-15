@@ -73,9 +73,9 @@ RX(r'<label class="small"><input type="checkbox" data-set="vcWork"[^>]*> Include
 
 # ---- import, backup and help wording ----
 R("Add every list you have: Apple Contacts, Outlook, Google, spreadsheets.", "Add every list you have: Apple Contacts, Google (Android), spreadsheets.")
-R(" For a fresh Zoho backup, tap 🟠 Use Zoho contacts in Add &amp; Clean Up first, then back up the new Zoho list here.", "")
+R(" For a fresh Zoho backup, tap Use Zoho contacts in Add &amp; Clean Up first, then back up the new Zoho list here.", "")
 R("grouped by where it came from (Zoho, Exchange / Outlook, Google, Apple).", "grouped by where it came from (Apple, Google).")
-R(" For a fresh Zoho backup, tap 🟠 Use Zoho contacts first, then back up the new Zoho list.", "")
+R(" For a fresh Zoho backup, tap Use Zoho contacts first, then back up the new Zoho list.", "")
 R(" Under <b>Which contacts</b>, <b>Only my Apple contacts</b> keeps your Zoho, Exchange and Google contacts out of it; <b>Everyone</b> puts them all in.", "")
 R("<li><b>Work contacts (.vcf)</b>, when you have some.</li>", "")
 R("Apple, Exchange / Outlook, Google, Zoho or another spreadsheet (after", "Apple, Google or another spreadsheet (after")
@@ -100,7 +100,7 @@ R("Total sales in NetSuite", "Total sales")
 R(" (from Zoho / NetSuite)", "")
 
 # ---- start-up guide and import card: no Zoho buttons or wording ----
-R('<button class="b big zhbtn" data-act="zohoget" data-v="Contacts">🟠 Use Zoho contacts</button><button class="b big" data-act="zohoget" data-v="Leads">Zoho leads</button>', '', 2)
+R('<button class="b big zhbtn" data-act="zohoget" data-v="Contacts">Use Zoho contacts</button><button class="b big" data-act="zohoget" data-v="Leads">Zoho leads</button>', '', 2)
 R("Add your Apple Contacts export (.vcf), Google, Outlook or any spreadsheet, several at once, or get your contacts straight from Zoho.", "Add your Apple Contacts export (.vcf), your Google Contacts (Android) file, or any spreadsheet, several at once.")
 R("Add any other lists you have, or get your contacts straight from Zoho. Check", "Add any other lists you have. Check")
 R("· Zoho, Google, Outlook / Exchange, Apple Contacts, or any spreadsheet", "· Apple Contacts, Google Contacts (Android), or any spreadsheet")
