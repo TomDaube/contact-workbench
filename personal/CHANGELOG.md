@@ -2,6 +2,9 @@
 
 The Personal edition is a clean copy for friends and family: Apple and Android (Google) address books only. It has its own version numbers, separate from the Work edition. It is built from the Work file by build-personal.py, which removes everything work related, and personal-check.js sweeps every screen and help topic for leftovers.
 
+## Version 1.3 (Nov 15, 2026)
+- Calmer, more consistent buttons in the Clean style: blue for the main action, red text for anything that deletes or removes, soft gray for everything else, one set of sizes. Classic keeps the colored buttons.
+
 ## Version 1.2 (Nov 15, 2026)
 - New Clean style, on by default: more white space, hairline borders, quiet buttons, one accent color, in light and dark. Settings › Appearance › Style switches between Clean and Classic.
 

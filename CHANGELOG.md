@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 158 (Nov 15, 2026)
+- Calmer, more consistent buttons in the Clean style: blue for the main action, red text for anything that deletes or removes, soft gray for everything else, one set of sizes. Classic keeps the colored buttons.
+
 ## Version 157 (Nov 15, 2026)
 - New Clean style, on by default: more white space, hairline borders, quiet buttons, one accent color, in light and dark. Settings › Appearance › Style switches between Clean and Classic.
 
