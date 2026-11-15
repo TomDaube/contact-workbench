@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 165 (Nov 15, 2026)
+- New Select all button: tap Select above the list, then Select all to tick everyone shown. Then Delete, Archive or Merge them in one go.
+
 ## Version 164 (Nov 15, 2026)
 - New 💬 button at the top opens the Contact Workbench chat with Claude in a new tab.
 - The A–Z letters on the right no longer sit on top of the Windows scroll bar (Lenovo Yoga).

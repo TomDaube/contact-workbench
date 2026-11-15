@@ -2,6 +2,9 @@
 
 The Personal edition is a clean copy for friends and family: Apple and Android (Google) address books only. It has its own version numbers, separate from the Work edition. It is built from the Work file by build-personal.py, which removes everything work related, and personal-check.js sweeps every screen and help topic for leftovers.
 
+## Version 1.9 (Nov 15, 2026)
+- New Select all button: tap Select above the list, then Select all to tick everyone shown. Then Delete, Archive or Merge them in one go.
+
 ## Version 1.8 (Nov 15, 2026)
 - The A–Z letters on the right no longer sit on top of the Windows scroll bar, so they're fully on screen on Windows laptops.
 
