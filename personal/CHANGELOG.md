@@ -2,6 +2,9 @@
 
 The Personal edition is a clean copy for friends and family: Apple and Android (Google) address books only. It has its own version numbers, separate from the Work edition. It is built from the Work file by build-personal.py, which removes everything work related, and personal-check.js sweeps every screen and help topic for leftovers.
 
+## Version 1.8 (Nov 15, 2026)
+- The A–Z letters on the right no longer sit on top of the Windows scroll bar, so they're fully on screen on Windows laptops.
+
 ## Version 1.7 (Nov 15, 2026)
 - Format filter: new Only in one (e.g. Only in Exchange) and In one, not the other (e.g. Exchange, not in Zoho) sections, alongside In both.
 

@@ -2,6 +2,11 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 164 (Nov 15, 2026)
+- New 💬 button at the top opens the Contact Workbench chat with Claude in a new tab.
+- The A–Z letters on the right no longer sit on top of the Windows scroll bar (Lenovo Yoga).
+- New Exchange helper (ExchangeBridge.ps1, Windows): Get brings Exchange contacts in with their Exchange Id; Export › Microsoft 365 / Exchange › Download changes lists clean-ups, merged duplicates and deletions; Apply previews, backs up and asks YES before changing anything; Put back restores deleted contacts. Zoho is never touched.
+
 ## Version 163 (Nov 15, 2026)
 - Format filter: new Only in one (e.g. Only in Exchange) and In one, not the other (e.g. Exchange, not in Zoho) sections, alongside In both.
 
