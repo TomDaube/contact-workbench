@@ -2,6 +2,10 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 159 (Nov 15, 2026)
+- Buttons are a little shorter and no longer bold (Reset, Search, Choose files and the rest).
+- New Button size slider in Settings › Appearance (Clean style), 75% to 125%, default 90%.
+
 ## Version 158 (Nov 15, 2026)
 - Calmer, more consistent buttons in the Clean style: blue for the main action, red text for anything that deletes or removes, soft gray for everything else, one set of sizes. Classic keeps the colored buttons.
 
