@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 166 (Nov 15, 2026)
+- The Exchange helper is easier to find: it shows on the Export page even before any contacts are added, and ? Help › Exchange helper has a Get the Exchange helper button.
+
 ## Version 165 (Nov 15, 2026)
 - New Select all button: tap Select above the list, then Select all to tick everyone shown. Then Delete, Archive or Merge them in one go.
 
