@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 157 (Nov 15, 2026)
+- New Clean style, on by default: more white space, hairline borders, quiet buttons, one accent color, in light and dark. Settings › Appearance › Style switches between Clean and Classic.
+
 ## Version 156 (Nov 14, 2026)
 - Behind the scenes: groundwork so the Personal edition saves each person's contacts in their own private space. Nothing changes in the Work app.
 

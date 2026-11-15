@@ -2,6 +2,9 @@
 
 The Personal edition is a clean copy for friends and family: Apple and Android (Google) address books only. It has its own version numbers, separate from the Work edition. It is built from the Work file by build-personal.py, which removes everything work related, and personal-check.js sweeps every screen and help topic for leftovers.
 
+## Version 1.2 (Nov 15, 2026)
+- New Clean style, on by default: more white space, hairline borders, quiet buttons, one accent color, in light and dark. Settings › Appearance › Style switches between Clean and Classic.
+
 ## Version 1.1 (Nov 14, 2026)
 - Private saving: each person who opens the app saves their contacts in their own private space in their Claude account (not the shared file store). Nobody else can see them, not even the person who shared the app.
 - If the app can't save there (for example it was shared to view only), the cloud badge says Saved on this device only and contacts stay in that browser.
