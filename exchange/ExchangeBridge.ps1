@@ -1,5 +1,5 @@
 <#
-  Contact Workbench - Exchange helper (version 1)
+  Contact Workbench - Exchange helper (version 2)
 
   Reads and changes the contacts in YOUR OWN Microsoft 365 (Exchange) mailbox,
   using Microsoft's own sign-in page. It never touches Zoho, Apple or Google.
@@ -13,7 +13,8 @@
       3  Put back deleted contacts  (from the file Apply saves before deleting)
       4  Sign out
 
-  Or from a PowerShell window:
+  Or from a PowerShell window (it uses Tom's Contact Workbench app by default):
+    powershell -ExecutionPolicy Bypass -NoExit -File "$HOME\Desktop\ExchangeBridge.ps1"
     powershell -ExecutionPolicy Bypass -File .\ExchangeBridge.ps1 Get
     powershell -ExecutionPolicy Bypass -File .\ExchangeBridge.ps1 Apply -Path .\Changes-for-Exchange.csv
     powershell -ExecutionPolicy Bypass -File .\ExchangeBridge.ps1 Restore -Path .\Exchange-deleted-....json
@@ -30,8 +31,10 @@
 param(
   [Parameter(Position = 0)][string]$Action = '',
   [string]$Path = '',
-  [string]$ClientId = '14d82eec-204b-4c2f-b7e8-296a70dab67e',
-  [string]$Tenant = 'organizations',
+  # Defaults: Tom's own "Contact Workbench" app in his Microsoft 365 (Entra).
+  # Someone else can pass -ClientId and -Tenant for their own app.
+  [string]$ClientId = '019f630b-13e7-4e9a-a65e-c1ab36c2d426',
+  [string]$Tenant = '3a80c2bf-b5d1-4908-8900-046f9d8ab061',
   [switch]$AllowRemove,
   [switch]$Yes
 )
@@ -54,13 +57,49 @@ function Stamp { (Get-Date).ToString('yyyy-MM-dd_HHmm') }
 function S($v) { if ($null -eq $v) { return '' } return ([string]$v).Trim() }
 
 # ---------------- sign-in (Microsoft's device-code page) ----------------
-function Get-ErrBody($e) {
-  try { if ($e.ErrorDetails -and $e.ErrorDetails.Message) { return ($e.ErrorDetails.Message | ConvertFrom-Json) } } catch {}
+function Get-ErrRaw($e) {
+  # The text Microsoft sent back with an error (JSON), or ''.
+  try { if ($e.ErrorDetails -and $e.ErrorDetails.Message) { return [string]$e.ErrorDetails.Message } } catch {}
   try {
-    $st = $e.Exception.Response.GetResponseStream(); $rd = New-Object IO.StreamReader($st)
-    return ($rd.ReadToEnd() | ConvertFrom-Json)
+    $st = $e.Exception.Response.GetResponseStream()
+    try { $st.Position = 0 } catch {}
+    $rd = New-Object IO.StreamReader($st)
+    return [string]$rd.ReadToEnd()
   } catch {}
+  return ''
+}
+
+function Get-ErrBody($e) {
+  $raw = Get-ErrRaw $e
+  if ($raw) { try { return ($raw | ConvertFrom-Json) } catch {} }
   return $null
+}
+
+function Get-ErrText($e) {
+  # One readable line: HTTP status + Microsoft's own code and message.
+  $code = 0; try { $code = [int]$e.Exception.Response.StatusCode } catch {}
+  $raw = Get-ErrRaw $e
+  $b = $null; if ($raw) { try { $b = $raw | ConvertFrom-Json } catch {} }
+  $txt = ''
+  if ($b -and $b.error -and $b.error.code) {
+    # Microsoft Graph style: { error: { code, message } }
+    $txt = [string]$b.error.code; if ($b.error.message) { $txt += ': ' + [string]$b.error.message }
+  } elseif ($b -and $b.error) {
+    # Microsoft sign-in style: { error, error_description }
+    $txt = [string]$b.error; if ($b.error_description) { $txt += ': ' + (([string]$b.error_description) -split "`r?`n")[0] }
+  } elseif ($raw) {
+    $txt = $raw.Trim(); if ($txt.Length -gt 400) { $txt = $txt.Substring(0, 400) + '...' }
+  } else {
+    $txt = $e.Exception.Message
+  }
+  if ($code) { $txt = '(' + $code + ') ' + $txt }
+  return $txt
+}
+
+function New-GraphError([string]$text, [int]$code, [string]$gcode) {
+  $ex = New-Object System.Exception($text)
+  $ex.Data['status'] = $code; $ex.Data['gcode'] = $gcode
+  return $ex
 }
 
 function Save-Refresh([string]$rt) {
@@ -86,7 +125,9 @@ function Use-Token($t) {
 }
 
 function SignIn-DeviceCode {
-  $dc = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/devicecode" -Body @{ client_id = $ClientId; scope = $Scopes }
+  try {
+    $dc = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/devicecode" -Body @{ client_id = $ClientId; scope = $Scopes }
+  } catch { throw ('Microsoft sign-in would not start: ' + (Get-ErrText $_)) }
   Say ''
   Say 'SIGN IN TO MICROSOFT 365' 'Cyan'
   Say ('  1. A web page opens: ' + $dc.verification_uri)
@@ -108,8 +149,7 @@ function SignIn-DeviceCode {
       $b = Get-ErrBody $_
       if ($b -and $b.error -eq 'authorization_pending') { continue }
       if ($b -and $b.error -eq 'slow_down') { $interval += 5; continue }
-      if ($b) { throw ('Sign-in did not work: ' + $b.error_description) }
-      throw
+      throw ('Sign-in did not work: ' + (Get-ErrText $_))
     }
   }
   throw 'The sign-in code ran out of time. Start the helper again.'
@@ -122,7 +162,10 @@ function Get-AccessToken {
     try {
       $t = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/token" -Body @{ grant_type = 'refresh_token'; client_id = $ClientId; refresh_token = $rt; scope = $Scopes }
       Use-Token $t; return $script:AccessToken
-    } catch { Remove-Item -Path $TokenFile -ErrorAction SilentlyContinue }
+    } catch {
+      Say ('Your saved sign-in no longer works, so you need to sign in again. (' + (Get-ErrText $_) + ')') 'Yellow'
+      Remove-Item -Path $TokenFile -ErrorAction SilentlyContinue
+    }
   }
   SignIn-DeviceCode
   return $script:AccessToken
@@ -148,7 +191,10 @@ function Invoke-Graph([string]$Method, [string]$Url, $Body = $null) {
         Start-Sleep -Seconds $wait; continue
       }
       if ($code -eq 401 -and $try -lt 2) { $script:AccessToken = $null; continue }
-      throw
+      $gcode = ''; $b = Get-ErrBody $_; if ($b -and $b.error -and $b.error.code) { $gcode = [string]$b.error.code }
+      $short = $Url; if ($short.StartsWith($GraphRoot)) { $short = $short.Substring($GraphRoot.Length) }
+      $q = $short.IndexOf('?'); if ($q -gt 0) { $short = $short.Substring(0, $q) }
+      throw (New-GraphError ('Microsoft said ' + (Get-ErrText $_) + '  [' + $Method + ' ' + $short + ']') $code $gcode)
     }
   }
 }
@@ -168,17 +214,49 @@ function Get-AllContacts {
   $folders = @{}
   $seen = @{}
   $all = New-Object System.Collections.ArrayList
-  $q = '?$top=500&$select=' + $Select
+  try {
+    $me = Invoke-Graph 'GET' '/me?$select=displayName,userPrincipalName,mail'
+    Say ('Signed in as ' + (S $me.displayName) + ' (' + (S $me.userPrincipalName) + ')') 'Green'
+  } catch {
+    if (-not $_.Exception.Data['status']) { throw }   # sign-in itself failed
+    Say ('Could not read who is signed in: ' + $_.Exception.Message) 'Yellow'
+  }
   Say 'Reading the Contacts folder...'
-  foreach ($c in (Get-Paged ('/me/contacts' + $q))) { if (-not $seen.ContainsKey($c.id)) { $seen[$c.id] = 1; [void]$all.Add($c) } }
+  # Some mailboxes refuse big pages or the field list, so step down until one works.
+  $tries = @(('?$top=100&$select=' + $Select), '?$top=100', '?$top=25', '')
+  $q = $null; $first = $null; $lastErr = $null
+  foreach ($t in $tries) {
+    try { $first = Get-Paged ('/me/contacts' + $t); $q = $t; break }
+    catch {
+      $lastErr = $_
+      Say ('  ' + $_.Exception.Message) 'DarkYellow'
+      $st = 0; try { $st = [int]$_.Exception.Data['status'] } catch {}
+      if ($st -ne 400) { break }
+      Say '  Trying again a simpler way...' 'DarkYellow'
+    }
+  }
+  if ($null -eq $q) {
+    $gc = ''; try { $gc = [string]$lastErr.Exception.Data['gcode'] } catch {}
+    if ($gc -match 'MailboxNotEnabledForRESTAPI|ErrorInvalidUser|MailboxNotFound|ResourceNotFound|ErrorNonExistentMailbox') {
+      Say ''
+      Say 'Microsoft says this account has no Exchange Online mailbox it can reach.' 'Yellow'
+      Say 'Check you signed in with the account that holds the contacts, and that it has' 'Yellow'
+      Say 'an Exchange Online (email) license. Choose 4 to sign out and sign in as another account.' 'Yellow'
+    }
+    throw $lastErr
+  }
+  foreach ($c in $first) { if (-not $seen.ContainsKey($c.id)) { $seen[$c.id] = 1; [void]$all.Add($c) } }
   $todo = New-Object System.Collections.ArrayList
-  foreach ($f in (Get-Paged '/me/contactFolders?$top=500')) { [void]$todo.Add($f) }
+  try { foreach ($f in (Get-Paged '/me/contactFolders?$top=100')) { [void]$todo.Add($f) } }
+  catch { Say ('Could not list your other contact folders, so only the main Contacts folder was read. ' + $_.Exception.Message) 'Yellow' }
   while ($todo.Count -gt 0) {
     $f = $todo[0]; $todo.RemoveAt(0)
     $folders[$f.id] = $f.displayName
     Say ('Reading folder ' + $f.displayName + '...')
-    foreach ($c in (Get-Paged ('/me/contactFolders/' + $f.id + '/contacts' + $q))) { if (-not $seen.ContainsKey($c.id)) { $seen[$c.id] = 1; [void]$all.Add($c) } }
-    foreach ($k in (Get-Paged ('/me/contactFolders/' + $f.id + '/childFolders?$top=500'))) { [void]$todo.Add($k) }
+    try {
+      foreach ($c in (Get-Paged ('/me/contactFolders/' + $f.id + '/contacts' + $q))) { if (-not $seen.ContainsKey($c.id)) { $seen[$c.id] = 1; [void]$all.Add($c) } }
+      foreach ($k in (Get-Paged ('/me/contactFolders/' + $f.id + '/childFolders?$top=100'))) { [void]$todo.Add($k) }
+    } catch { Say ('  Skipped folder ' + $f.displayName + ': ' + $_.Exception.Message) 'Yellow' }
   }
   return @{ list = $all; folders = $folders }
 }
@@ -504,7 +582,8 @@ try {
 } catch {
   Say ''
   Say ('Something went wrong: ' + $_.Exception.Message) 'Red'
-  $eb = Get-ErrBody $_; if ($eb -and $eb.error -and $eb.error.message) { Say ('Microsoft says: ' + $eb.error.message) 'Red' }
+  $raw = Get-ErrRaw $_; if ($raw) { Say ('Details: ' + (Get-ErrText $_)) 'Red' }
+  Say 'If you ask Claude for help, copy the red lines above and paste them in.' 'Gray'
 }
 Say ''
 Read-Host 'Press Enter to close' | Out-Null

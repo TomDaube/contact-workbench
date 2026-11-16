@@ -21,6 +21,11 @@ A small Windows PowerShell script that lets Contact Workbench read and change th
 - Contacts it deletes are saved first to `Exchange-deleted-<date>.json`; choose **3** (Put back) to restore them.
 - Sign out any time with **4**.
 
-## If sign-in is blocked
-If your organization blocks this sign-in, register your own app in Entra (App registrations > New registration; Authentication > Allow public client flows = Yes; API permissions > Microsoft Graph > Delegated > Contacts.ReadWrite and User.Read) and run:
-`powershell -ExecutionPolicy Bypass -File .\ExchangeBridge.ps1 -ClientId <your app's Application (client) ID>`
+## Which Microsoft app it signs in with
+The helper signs in with Tom's own **Contact Workbench** app registered in his Microsoft 365 (Entra), so no extra arguments are needed:
+`powershell -ExecutionPolicy Bypass -NoExit -File "C:\Users\Owner-Pc\Desktop\ExchangeBridge.ps1"`
+
+Someone else can register their own app (App registrations > New registration; Authentication > Allow public client flows = Yes; API permissions > Microsoft Graph > Delegated > Contacts.ReadWrite and User.Read) and add `-ClientId <Application (client) ID> -Tenant <Directory (tenant) ID>`.
+
+## If something goes wrong
+Version 2 prints Microsoft's own error code and message (for example `(400) ErrorInvalidRequest: ...`) and which request failed. If reading contacts is refused, it tries again with smaller, simpler requests before giving up. Copy the red lines and send them to Claude.

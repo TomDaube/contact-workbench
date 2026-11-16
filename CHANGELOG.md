@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 167 (Nov 16, 2026)
+- Exchange helper version 2: shows Microsoft's own error message when something fails, retries reading contacts in a simpler way if Exchange refuses, says which account is signed in, and signs in with your own Contact Workbench app without any extra typing.
+
 ## Version 166 (Nov 15, 2026)
 - The Exchange helper is easier to find: it shows on the Export page even before any contacts are added, and ? Help › Exchange helper has a Get the Exchange helper button.
 
