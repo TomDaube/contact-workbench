@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 168 (Nov 16, 2026)
+- Exchange helper version 3: if Microsoft does not recognise the app, the helper asks you to paste the Application ID and Directory ID from Microsoft Entra and remembers them.
+
 ## Version 167 (Nov 16, 2026)
 - Exchange helper version 2: shows Microsoft's own error message when something fails, retries reading contacts in a simpler way if Exchange refuses, says which account is signed in, and signs in with your own Contact Workbench app without any extra typing.
 

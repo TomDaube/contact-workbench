@@ -1,5 +1,5 @@
 <#
-  Contact Workbench - Exchange helper (version 2)
+  Contact Workbench - Exchange helper (version 3)
 
   Reads and changes the contacts in YOUR OWN Microsoft 365 (Exchange) mailbox,
   using Microsoft's own sign-in page. It never touches Zoho, Apple or Google.
@@ -48,6 +48,15 @@ $Select = 'id,displayName,givenName,middleName,surname,title,generation,nickName
 $OutDir = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Contact Workbench\Exchange'
 if (-not (Test-Path $OutDir)) { New-Item -ItemType Directory -Force -Path $OutDir | Out-Null }
 $TokenDir = Join-Path $env:LOCALAPPDATA 'ContactWorkbench'
+# App IDs pasted in earlier (see Ask-AppIds) win over the built-in defaults,
+# unless -ClientId was typed on the command line.
+$AppFile = Join-Path $TokenDir 'exchange-app-ids.txt'
+if (-not $PSBoundParameters.ContainsKey('ClientId') -and (Test-Path $AppFile)) {
+  try {
+    $ids = @(Get-Content -Path $AppFile | ForEach-Object { ([string]$_).Trim() } | Where-Object { $_ })
+    if ($ids.Count -ge 2) { $ClientId = $ids[0]; $Tenant = $ids[1] }
+  } catch {}
+}
 $TokenFile = Join-Path $TokenDir ('exchange-signin-' + $ClientId + '.txt')
 $script:AccessToken = $null
 $script:AccessUntil = [datetime]::MinValue
@@ -124,10 +133,38 @@ function Use-Token($t) {
   if ($t.refresh_token) { Save-Refresh $t.refresh_token }
 }
 
+function Ask-AppIds {
+  # Microsoft did not recognise the app. Ask for the two IDs from the Entra page and remember them.
+  Say ''
+  Say 'Microsoft does not recognise the app ID or directory ID this helper is using.' 'Yellow'
+  Say 'Copy the right ones from Microsoft Entra:' 'White'
+  Say '  1. Go to entra.microsoft.com and sign in.'
+  Say '  2. App registrations > All applications > Contact Workbench.'
+  Say '  3. On its Overview page, copy "Application (client) ID" and paste it below.'
+  Say '  4. Then copy "Directory (tenant) ID" and paste it below.'
+  try { Start-Process 'https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade' } catch {}
+  $g = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+  $c = ''; while ($c -notmatch $g) { $c = ([string](Read-Host 'Application (client) ID')).Trim(); if ($c -notmatch $g) { Say '  That does not look right. It is 36 characters like 1234abcd-12ab-34cd-56ef-1234567890ab.' 'Yellow' } }
+  $t = ''; while ($t -notmatch $g) { $t = ([string](Read-Host 'Directory (tenant) ID')).Trim(); if ($t -notmatch $g) { Say '  That does not look right. It is 36 characters like 1234abcd-12ab-34cd-56ef-1234567890ab.' 'Yellow' } }
+  $script:ClientId = $c; $script:Tenant = $t
+  $script:TokenFile = Join-Path $TokenDir ('exchange-signin-' + $c + '.txt')
+  if (-not (Test-Path $TokenDir)) { New-Item -ItemType Directory -Force -Path $TokenDir | Out-Null }
+  Set-Content -Path $AppFile -Value @($c, $t)
+  Say 'Saved. The helper will use these IDs from now on.' 'Green'
+}
+
 function SignIn-DeviceCode {
-  try {
-    $dc = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/devicecode" -Body @{ client_id = $ClientId; scope = $Scopes }
-  } catch { throw ('Microsoft sign-in would not start: ' + (Get-ErrText $_)) }
+  $dc = $null
+  for ($n = 1; $n -le 3 -and $null -eq $dc; $n++) {
+    try {
+      $dc = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/devicecode" -Body @{ client_id = $ClientId; scope = $Scopes }
+    } catch {
+      $why = Get-ErrText $_
+      # 700016 app not found, 90002/900023 bad directory, 700038 not a valid app ID
+      if ($n -lt 3 -and $why -match 'AADSTS(700016|90002|900023|700038)') { Say ('Microsoft says: ' + $why) 'DarkYellow'; Ask-AppIds; continue }
+      throw ('Microsoft sign-in would not start: ' + $why)
+    }
+  }
   Say ''
   Say 'SIGN IN TO MICROSOFT 365' 'Cyan'
   Say ('  1. A web page opens: ' + $dc.verification_uri)
