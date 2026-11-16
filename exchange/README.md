@@ -21,6 +21,9 @@ A small Windows PowerShell script that lets Contact Workbench read and change th
 - Contacts it deletes are saved first to `Exchange-deleted-<date>.json`; choose **3** (Put back) to restore them.
 - Sign out any time with **4**.
 
+## Sign-in
+Since version 4 the helper signs in on Microsoft's normal page in your web browser (the app needs the redirect URI `http://localhost` under Authentication > Mobile and desktop applications). Add `-DeviceCode` to use the older code sign-in instead.
+
 ## Which Microsoft app it signs in with
 The helper signs in with Tom's own **Contact Workbench** app registered in his Microsoft 365 (Entra), so no extra arguments are needed:
 `powershell -ExecutionPolicy Bypass -NoExit -File "C:\Users\Owner-Pc\Desktop\ExchangeBridge.ps1"`

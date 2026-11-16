@@ -1,5 +1,5 @@
 <#
-  Contact Workbench - Exchange helper (version 3)
+  Contact Workbench - Exchange helper (version 4)
 
   Reads and changes the contacts in YOUR OWN Microsoft 365 (Exchange) mailbox,
   using Microsoft's own sign-in page. It never touches Zoho, Apple or Google.
@@ -36,7 +36,8 @@ param(
   [string]$ClientId = '302ffbfc-1c93-4683-905d-42a4e9a57d86',
   [string]$Tenant = '3a80c2bf-b5d1-4908-8900-046f9d8ab061',
   [switch]$AllowRemove,
-  [switch]$Yes
+  [switch]$Yes,
+  [switch]$DeviceCode   # use the old code sign-in instead of the browser
 )
 
 $ErrorActionPreference = 'Stop'
@@ -153,6 +154,75 @@ function Ask-AppIds {
   Say 'Saved. The helper will use these IDs from now on.' 'Green'
 }
 
+function B64Url([byte[]]$b) { return ([Convert]::ToBase64String($b)).TrimEnd('=').Replace('+', '-').Replace('/', '_') }
+function Rand-Bytes([int]$n) { $b = New-Object byte[] $n; (New-Object Security.Cryptography.RNGCryptoServiceProvider).GetBytes($b); return , $b }
+
+function Send-Page($client, [int]$status, [string]$html) {
+  try {
+    $body = [Text.Encoding]::UTF8.GetBytes('<!doctype html><html><body style="font-family:Segoe UI,Arial;font-size:18px;margin:40px">' + $html + '</body></html>')
+    $head = 'HTTP/1.1 ' + $status + ' OK' + "`r`n" + 'Content-Type: text/html; charset=utf-8' + "`r`n" + 'Content-Length: ' + $body.Length + "`r`n" + 'Connection: close' + "`r`n`r`n"
+    $hb = [Text.Encoding]::ASCII.GetBytes($head)
+    $st = $client.GetStream(); $st.Write($hb, 0, $hb.Length); $st.Write($body, 0, $body.Length); $st.Flush()
+  } catch {}
+  try { $client.Close() } catch {}
+}
+
+function SignIn-Browser {
+  # Normal Microsoft sign-in in your web browser (authorization code + PKCE).
+  # Microsoft sends the browser back to this PC (http://localhost), where the helper picks up the answer.
+  $tcp = New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback, 0)
+  $tcp.Start()
+  try {
+    $port = $tcp.LocalEndpoint.Port
+    $redirect = 'http://localhost:' + $port
+    $verifier = B64Url (Rand-Bytes 48)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $challenge = B64Url ($sha.ComputeHash([Text.Encoding]::ASCII.GetBytes($verifier)))
+    $state = B64Url (Rand-Bytes 16)
+    $url = 'https://login.microsoftonline.com/' + $Tenant + '/oauth2/v2.0/authorize?client_id=' + $ClientId +
+      '&response_type=code&response_mode=query&prompt=select_account' +
+      '&redirect_uri=' + [Uri]::EscapeDataString($redirect) +
+      '&scope=' + [Uri]::EscapeDataString($Scopes) +
+      '&code_challenge=' + $challenge + '&code_challenge_method=S256&state=' + $state
+    Say ''
+    Say 'SIGN IN TO MICROSOFT 365' 'Cyan'
+    Say '  Your web browser opens on Microsoft''s sign-in page. Sign in with your work account.'
+    Say '  If it asks for permission to read and write your contacts, accept.'
+    Say '  When the page says you are signed in, come back to this window.'
+    Say '  (If the browser shows an error instead, copy it and send it to Claude.)'
+    Say '  Waiting for you to finish signing in (up to 5 minutes)...'
+    Start-Process $url
+    $deadline = (Get-Date).AddMinutes(5)
+    while ((Get-Date) -lt $deadline) {
+      if (-not $tcp.Pending()) { Start-Sleep -Milliseconds 300; continue }
+      $client = $tcp.AcceptTcpClient()
+      $line = ''
+      try { $client.ReceiveTimeout = 5000; $rd = New-Object IO.StreamReader($client.GetStream()); $line = [string]$rd.ReadLine() } catch {}
+      $parts = $line.Split(' ')
+      $path = ''; if ($parts.Count -ge 2) { $path = $parts[1] }
+      $qi = $path.IndexOf('?')
+      if ($qi -lt 0) { Send-Page $client 404 'Not here.'; continue }
+      $qs = @{}
+      foreach ($kv in $path.Substring($qi + 1).Split('&')) {
+        $eq = $kv.IndexOf('='); if ($eq -lt 1) { continue }
+        $qs[$kv.Substring(0, $eq)] = [Uri]::UnescapeDataString($kv.Substring($eq + 1).Replace('+', ' '))
+      }
+      if ($qs['state'] -ne $state) { Send-Page $client 400 'This sign-in page is out of date. Close it and try again from the helper.'; continue }
+      if ($qs['error']) {
+        Send-Page $client 200 ('<b>Sign-in did not work.</b><br><br>' + [Net.WebUtility]::HtmlEncode($qs['error_description']) + '<br><br>You can close this tab.')
+        throw ('Sign-in did not work: ' + $qs['error'] + ': ' + (([string]$qs['error_description']) -split "`r?`n")[0])
+      }
+      if (-not $qs['code']) { Send-Page $client 404 'Not here.'; continue }
+      Send-Page $client 200 '<b>You are signed in.</b><br><br>You can close this tab and go back to the Exchange helper window.'
+      try {
+        $t = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/token" -Body @{ grant_type = 'authorization_code'; client_id = $ClientId; code = $qs['code']; redirect_uri = $redirect; code_verifier = $verifier; scope = $Scopes }
+      } catch { throw ('Sign-in did not work: ' + (Get-ErrText $_)) }
+      Use-Token $t; Say 'Signed in.' 'Green'; return
+    }
+    throw 'Sign-in ran out of time. Start the helper again.'
+  } finally { try { $tcp.Stop() } catch {} }
+}
+
 function SignIn-DeviceCode {
   $dc = $null
   for ($n = 1; $n -le 3 -and $null -eq $dc; $n++) {
@@ -204,7 +274,7 @@ function Get-AccessToken {
       Remove-Item -Path $TokenFile -ErrorAction SilentlyContinue
     }
   }
-  SignIn-DeviceCode
+  if ($DeviceCode) { SignIn-DeviceCode } else { SignIn-Browser }
   return $script:AccessToken
 }
 

@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 169 (Nov 16, 2026)
+- Exchange helper version 4: signs in on Microsoft's normal page in your web browser, because some Microsoft 365 setups block the code sign-in.
+
 ## Version 168 (Nov 16, 2026)
 - Exchange helper version 3: if Microsoft does not recognise the app, the helper asks you to paste the Application ID and Directory ID from Microsoft Entra and remembers them.
 
