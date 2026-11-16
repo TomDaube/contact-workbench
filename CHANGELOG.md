@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 170 (Nov 16, 2026)
+- ? Help › Exchange helper has the new steps (run it from PowerShell, sign in in the browser), and a new topic, Exchange helper: one-time Microsoft setup, records the Entra setup and the app’s IDs.
+
 ## Version 169 (Nov 16, 2026)
 - Exchange helper version 4: signs in on Microsoft's normal page in your web browser, because some Microsoft 365 setups block the code sign-in.
 

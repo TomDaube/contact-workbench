@@ -119,7 +119,7 @@ R("such as <b>Exchange, not in Zoho</b>", "such as <b>Apple, not in Google</b>")
 # v164: no chat button, no Exchange helper, no Exchange Id field
 RX(r'<a class="b s themebtn" id="chatbtn" [^>]*>💬</a>', '')
 RX(r'<script type="text/plain" id="exps1">.*?</script>\n', '')
-RX(r"^  \['exchange',.*\n", "", flags=re.M)
+RX(r"^  \['ex(?:change|setup)',.*\n", "", flags=re.M)
 R("['exchId','Exchange Id'],", "")
 RX(r"/\* v164: Exchange bridge\..*?(?=\nconst EXPORTS=)", "function exHelperSave(){}\nfunction exchangeRows(){return[[]]}\nfunction exchCounts(){return{up:0,dup:0,del:0}}\nfunction exchTile(){return''}")
 RX(r"    case 'exhelp':.*?\n    case 'exhelper':exHelperSave\(\);break;\n", "")
