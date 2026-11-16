@@ -2,6 +2,9 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 173 (Nov 16, 2026)
+- New Send changes to Zoho (Export page): fills empty Zoho fields with what came in from Exchange, after a per-record preview; try the first 10 or send all. Optional: also replace names, company, job title, department and web page. Nothing is deleted in Zoho. The app's Zoho connector now also allows updateRecords.
+
 ## Version 172 (Nov 16, 2026)
 - Compare lists can show three circles (for example Zoho, Exchange and Apple).
 - New Record markers in Compare: Zoho contacts with an Exchange marker (Notes from Exchange filled in) and Exchange contacts that mention Zoho, each split into found or not found in the other list.

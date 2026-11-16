@@ -121,11 +121,15 @@ RX(r'<a class="b s themebtn" id="chatbtn" [^>]*>💬</a>', '')
 RX(r'<script type="text/plain" id="exps1">.*?</script>\n', '')
 RX(r"^  \['ex(?:change|setup)',.*\n", "", n=2, flags=re.M)
 R("['exchId','Exchange Id'],", "")
-RX(r"/\* v164: Exchange bridge\..*?(?=\nconst EXPORTS=)", "function exHelperSave(){}\nfunction exchangeRows(){return[[]]}\nfunction exchCounts(){return{up:0,dup:0,del:0}}\nfunction exchTile(){return''}")
+RX(r"/\* v164: Exchange bridge\..*?(?=\nconst EXPORTS=)", "function zpTile(){return''}\nfunction exHelperSave(){}\nfunction exchangeRows(){return[[]]}\nfunction exchCounts(){return{up:0,dup:0,del:0}}\nfunction exchTile(){return''}")
 RX(r"    case 'exhelp':.*?\n    case 'exhelper':exHelperSave\(\);break;\n", "")
 
 # v167 (other session): Zoho button style block
 RX(r"<style>\n/\* v167: Use Zoho contacts button stands out \*/.*?</style>\n?", "")
+
+# v173: Send changes to Zoho (help topic and actions)
+RX(r"^  \['zohopush',.*\n", "", flags=re.M)
+RX(r"    case 'zppush':.*?\n    case 'zpopt':.*?\n    case 'zpsend':.*?zohoPushSend\(t\.dataset\.v\);break}\n", "")
 
 open(out, 'w').write(s)
 print('built', out)
