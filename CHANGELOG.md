@@ -2,6 +2,10 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 172 (Nov 16, 2026)
+- Compare lists can show three circles (for example Zoho, Exchange and Apple).
+- New Record markers in Compare: Zoho contacts with an Exchange marker (Notes from Exchange filled in) and Exchange contacts that mention Zoho, each split into found or not found in the other list.
+
 ## Version 171 (Nov 16, 2026)
 - New Compare button next to Format on Contacts: a Venn diagram of two lists (such as Zoho and Exchange) with counts for only one, only the other, and both. Tap a number to see those people.
 - The Use Zoho contacts button now stands out: solid green, bold, larger, with a download arrow.
