@@ -2,6 +2,11 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 171 (Nov 16, 2026)
+- New Compare button next to Format on Contacts: a Venn diagram of two lists (such as Zoho and Exchange) with counts for only one, only the other, and both. Tap a number to see those people.
+- The Use Zoho contacts button now stands out: solid green, bold, larger, with a download arrow.
+- The version badge at the top shows the right number again (it was stuck on v166).
+
 ## Version 170 (Nov 16, 2026)
 - ? Help › Exchange helper has the new steps (run it from PowerShell, sign in in the browser), and a new topic, Exchange helper: one-time Microsoft setup, records the Entra setup and the app’s IDs.
 
