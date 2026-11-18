@@ -2,6 +2,11 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 178 (Nov 18, 2026)
+
+- New: Remove from Exchange only. Select people on Contacts (for example Compare › In Exchange and Apple, not in Zoho) and tap 📨 Remove from Exchange only. They stay in the app and in the Apple download with everything from Exchange; Changes for Exchange deletes just their Exchange copies when the helper runs (backup first, then YES). Contacts in Zoho CRM folders are still left alone.
+- Keep in Exchange undoes it; Format ▾ › Leaving Exchange lists everyone marked.
+
 ## Version 177 (Nov 18, 2026)
 - Safety: Changes for Exchange leaves out contacts in a Zoho CRM folder in Exchange (copies made by Zoho's Microsoft 365 sync), so they are never changed or deleted. The Exchange box on Export says how many were left out; a tick box includes them if Zoho's sync is off.
 - New Format › Exchange folder on Contacts (🛡 marks Zoho CRM folders).
