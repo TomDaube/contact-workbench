@@ -11,6 +11,8 @@ the Work file that breaks a rule stops the build instead of leaking work text.
 import sys, re
 src, out = sys.argv[1], sys.argv[2]
 s = open(src).read()
+# v176: the Work app is called Combined Contact Workbench; Personal starts from the plain name
+s = s.replace('Combined Contact Workbench', 'Contact Workbench')
 
 PERSONAL_VER = '1.11'
 PERSONAL_DATE = 'Nov 14, 2026'
@@ -121,7 +123,7 @@ RX(r'<a class="b s themebtn" id="chatbtn" [^>]*>💬</a>', '')
 RX(r'<script type="text/plain" id="exps1">.*?</script>\n', '')
 RX(r"^  \['ex(?:change|setup)',.*\n", "", n=2, flags=re.M)
 R("['exchId','Exchange Id'],", "")
-RX(r"/\* v164: Exchange bridge\..*?(?=\nconst EXPORTS=)", "function zpTile(){return''}\nfunction exHelperSave(){}\nfunction exchangeRows(){return[[]]}\nfunction exchCounts(){return{up:0,dup:0,del:0}}\nfunction exchTile(){return''}")
+RX(r"/\* v164: Exchange bridge\..*?(?=\nconst EXPORTS=)", "const exZohoFolder=()=>false;\nfunction zpTile(){return''}\nfunction exHelperSave(){}\nfunction exchangeRows(){return[[]]}\nfunction exchCounts(){return{up:0,dup:0,del:0}}\nfunction exchTile(){return''}")
 RX(r"    case 'exhelp':.*?\n    case 'exhelper':exHelperSave\(\);break;\n", "")
 
 # v167 (other session): Zoho button style block
@@ -129,6 +131,7 @@ RX(r"<style>\n/\* v167: Use Zoho contacts button stands out \*/.*?</style>\n?", 
 
 # v173: Send changes to Zoho (help topic and actions)
 RX(r"^  \['zohopush',.*\n", "", flags=re.M)
+RX(r"^  \['exfolders',.*\n", "", flags=re.M)
 RX(r"    case 'zppush':.*?\n    case 'zpopt':.*?\n    case 'zpsend':.*?zohoPushSend\(t\.dataset\.v\);break}\n", "")
 
 open(out, 'w').write(s)

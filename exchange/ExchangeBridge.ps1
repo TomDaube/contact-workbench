@@ -1,5 +1,5 @@
 <#
-  Contact Workbench - Exchange helper (version 4)
+  Contact Workbench - Exchange helper (version 5)
 
   Reads and changes the contacts in YOUR OWN Microsoft 365 (Exchange) mailbox,
   using Microsoft's own sign-in page. It never touches Zoho, Apple or Google.
@@ -25,6 +25,9 @@
     - Contacts it deletes are also saved on their own, so Restore can put them back.
     - It never removes a phone number, email or address from a contact unless you
       add -AllowRemove. Without it, it only adds and corrects.
+    - Exchange holds 3 emails, 2 business, 2 home and 1 mobile number. Emails and
+      numbers that don't fit are written into the contact's Notes as
+      "Other emails: ..." and "Other phones: ...", so none is lost.
 
   Files go to: Documents\Contact Workbench\Exchange
 #>
@@ -422,14 +425,38 @@ function Same-List($a, $b) { $a = @($a); $b = @($b); if ($a.Count -ne $b.Count) 
 function Show-List($a) { $a = @($a | Where-Object { $_ }); if ($a.Count -eq 0) { return '(none)' } return ($a -join ', ') }
 function Short([string]$t) { $t = $t -replace "`r?`n", ' / '; if ($t.Length -gt 70) { return $t.Substring(0, 67) + '...' } return $t }
 
+# v5 safety rules: keep junk from old imports out of Exchange
+function Clean-Name([string]$v) {
+  $v = S $v
+  $v = ($v -replace '\s*\((c|v|l|customer|vendor|lead)\)\s*$', '').Trim()   # Zoho tags such as "(c)"
+  if ($v -match '^(?i)([a-z]{1,3})\1+$') { return '' }                   # repeated junk such as "Zxzx"
+  if ($v.Length -ge 3 -and $v -match '^[A-Za-z]+$' -and $v -notmatch '(?i)[aeiouy]') { return '' }   # no vowels at all
+  return $v
+}
+function Clean-Notes([string]$v) {
+  $t = (S $v) -replace "`r`n", "`n"
+  # drop "Contact Imported:" blocks (field dumps from old imports, such as Zoho Record Id lines)
+  $t = [regex]::Replace($t, '(?ms)^\s*Contact Imported:\s*\n.*?(?=\n\s*\n|\z)', '')
+  $t = [regex]::Replace($t, '(?m)^\s*-{5,}\s*$', '')                        # divider lines
+  $t = [regex]::Replace($t, "\n{3,}", "`n`n")
+  return $t.Trim()
+}
+
 function Build-Patch($row, $c) {
   $patch = @{}; $notes = New-Object System.Collections.ArrayList
+  $extraEmails = New-Object System.Collections.ArrayList; $extraPhones = New-Object System.Collections.ArrayList
   $map = [ordered]@{ 'First Name' = 'givenName'; 'Middle Name' = 'middleName'; 'Last Name' = 'surname'; 'Title' = 'title'; 'Suffix' = 'generation'; 'Nickname' = 'nickName'; 'Company' = 'companyName'; 'Job Title' = 'jobTitle'; 'Department' = 'department'; 'Web Page' = 'businessHomePage'; 'Notes' = 'personalNotes' }
   foreach ($k in $map.Keys) {
     $new = Col $row $k; if ($null -eq $new) { continue }
     $prop = $map[$k]; $old = S $c.$prop
     if ($k -eq 'Last Name' -and $old -eq '' -and $new -ne '' -and $new -eq (Col $row 'Company') -and (Col $row 'First Name') -eq '') { continue }
-    if ($k -eq 'Notes') { $new = $new -replace "`r`n", "`n"; $old = $old -replace "`r`n", "`n" }
+    if ($k -eq 'Notes') {
+      $old = $old -replace "`r`n", "`n"; $new = Clean-Notes $new
+      # safe mode: never drop what Notes already says; keep it and add only what is new
+      if (-not $AllowRemove -and $old) { $oc = Clean-Notes $old; if ($oc -and -not $new.Contains($oc)) { $new = $(if ($new) { $oc + "`n`n" + $new } else { $oc }) } }
+      if ((Clean-Notes $old) -ceq $new) { continue }
+    }
+    if ($k -in @('First Name', 'Middle Name', 'Last Name', 'Nickname')) { $new = Clean-Name $new; if ($new -ceq (Clean-Name $old)) { continue } }
     if ($new -ceq $old) { continue }
     if ($new -eq '') {
       if ($AllowRemove) { $patch[$prop] = $null; [void]$notes.Add(('{0}: remove "{1}"' -f $k, (Short $old))) }
@@ -467,12 +494,17 @@ function Build-Patch($row, $c) {
       foreach ($p in $ob) { if (-not $newDigits.ContainsKey((Digits $p))) { $nb += $p; $newDigits[(Digits $p)] = 1 } }
       foreach ($p in $oh) { if (-not $newDigits.ContainsKey((Digits $p))) { $nh += $p; $newDigits[(Digits $p)] = 1 } }
       if ($om -and -not $nm) { $nm = $om }
-      elseif ($om -and $nm -and (Digits $om) -ne (Digits $nm) -and -not (@($nb + $nh) | Where-Object { (Digits $_) -eq (Digits $om) })) { $ok = $false; $why = 'the mobile number would be replaced' }
+      elseif ($om -and $nm -and (Digits $om) -ne (Digits $nm) -and -not (@($nb + $nh) | Where-Object { (Digits $_) -eq (Digits $om) })) {
+        # v5: keep the mobile Exchange already has; the new number goes with the other phones
+        $nh += $nm; $nm = $om
+      }
     }
     while ($nb.Count -gt 2 -and $nh.Count -lt 2) { $nh = @($nh) + @($nb[2]); $nb = @(@($nb | Select-Object -First 2) + @($nb | Select-Object -Skip 3)) }
     while ($nh.Count -gt 2 -and $nb.Count -lt 2) { $nb = @($nb) + @($nh[2]); $nh = @(@($nh | Select-Object -First 2) + @($nh | Select-Object -Skip 3)) }
     if ($nb.Count -gt 2 -or $nh.Count -gt 2) {
-      if ($AllowRemove) { $nb = @($nb | Select-Object -First 2); $nh = @($nh | Select-Object -First 2) } else { $ok = $false; $why = 'there are more numbers than Exchange has room for' }
+      # v5: numbers that don't fit go into Notes instead (safe mode), so none is lost
+      if (-not $AllowRemove) { foreach ($p in @(@($nb | Select-Object -Skip 2) + @($nh | Select-Object -Skip 2))) { [void]$extraPhones.Add([string]$p) } }
+      $nb = @($nb | Select-Object -First 2); $nh = @($nh | Select-Object -First 2)
     }
     if ($ok) {
       if (-not (Same-List $nb $ob)) { $patch['businessPhones'] = [object[]]$nb; [void]$notes.Add(('Business phones: {0} -> {1}' -f (Show-List $ob), (Show-List $nb))) }
@@ -489,10 +521,16 @@ function Build-Patch($row, $c) {
     $ne = @(@((Col $row 'E-mail Address'), (Col $row 'E-mail 2 Address'), (Col $row 'E-mail 3 Address')) | Where-Object { $_ })
     $oe = @(@($c.emailAddresses) | Where-Object { $_ -and $_.address })
     $have = @{}; foreach ($e in $ne) { $have[$e.ToLower()] = 1 }
-    if (-not $AllowRemove) { foreach ($e in $oe) { if (-not $have.ContainsKey(([string]$e.address).ToLower())) { $ne += [string]$e.address; $have[([string]$e.address).ToLower()] = 1 } } }
+    if (-not $AllowRemove) {
+      # v5 safe mode: the emails Exchange already has stay first, in their order; new ones follow (extras go to Notes)
+      $keepFirst = @($oe | ForEach-Object { [string]$_.address })
+      $seen = @{}; foreach ($e in $keepFirst) { $seen[$e.ToLower()] = 1 }
+      $ne = @($keepFirst) + @($ne | Where-Object { -not $seen.ContainsKey(([string]$_).ToLower()) })
+    }
     $oa = @($oe | ForEach-Object { [string]$_.address })
-    if ($ne.Count -gt 3 -and -not $AllowRemove) { [void]$notes.Add('Emails left as they are, because there are more than Exchange has room for (run with -AllowRemove to allow that)') }
-    else {
+    # v5: emails that don't fit (Exchange holds 3) go into Notes instead (safe mode), so none is lost
+    if ($ne.Count -gt 3 -and -not $AllowRemove) { foreach ($e in @($ne | Select-Object -Skip 3)) { [void]$extraEmails.Add([string]$e) } }
+    if ($true) {
       $ne = @($ne | Select-Object -First 3)
       if (-not (Same-List @($ne | ForEach-Object { $_.ToLower() }) @($oa | ForEach-Object { $_.ToLower() }))) {
         $dn = S $c.displayName; if ($patch.ContainsKey('displayName')) { $dn = $patch['displayName'] }
@@ -534,11 +572,38 @@ function Build-Patch($row, $c) {
   if ($nbd) {
     $d = [datetime]::MinValue
     $ok = [datetime]::TryParse($nbd, [Globalization.CultureInfo]::GetCultureInfo('en-US'), [Globalization.DateTimeStyles]::None, [ref]$d)
-    if ($ok -and $d.Year -gt 1900) {
+    if ($ok -and $d.Year -gt 1900 -and $d.Year -le ((Get-Date).Year - 5)) {   # v5: a birthday under 5 years ago is a date typed by mistake
       $iso = $d.ToString('yyyy-MM-dd')
       $obd = Date-Part $c.birthday
       if ($iso -ne $obd) { $patch['birthday'] = ($iso + 'T11:59:00Z'); [void]$notes.Add(('Birthday: {0} -> {1}' -f (Show-List @($obd)), $iso)) }
     }
+  }
+
+  # v5: extra emails and phones that don't fit go into Notes, unless Notes already has them
+  # Any "Other emails:" / "Other phones:" lines are rebuilt so they never repeat what is already in the email and phone fields.
+  $base = ($(if ($patch.ContainsKey('personalNotes')) { [string]$patch['personalNotes'] } else { S $c.personalNotes })) -replace "`r`n", "`n"
+  $oldNotes = (S $c.personalNotes) -replace "`r`n", "`n"
+  $finalEm = @($(if ($patch.ContainsKey('emailAddresses')) { $patch['emailAddresses'] | ForEach-Object { [string]$_.address } } else { @($c.emailAddresses) | ForEach-Object { [string]$_.address } }) | Where-Object { $_ } | ForEach-Object { $_.ToLower() })
+  $finalPh = @(@($(if ($patch.ContainsKey('businessPhones')) { $patch['businessPhones'] } else { $c.businessPhones })) + @($(if ($patch.ContainsKey('homePhones')) { $patch['homePhones'] } else { $c.homePhones })) + @($(if ($patch.ContainsKey('mobilePhone')) { $patch['mobilePhone'] } else { $c.mobilePhone })) | Where-Object { $_ } | ForEach-Object { Digits $_ })
+  $ee = New-Object System.Collections.ArrayList; $pp = New-Object System.Collections.ArrayList
+  foreach ($m in [regex]::Matches($base, '(?im)^\s*Other emails:\s*(.*)$')) { foreach ($x in ($m.Groups[1].Value -split ';')) { if ((S $x)) { [void]$ee.Add((S $x)) } } }
+  foreach ($m in [regex]::Matches($base, '(?im)^\s*Other phones:\s*(.*)$')) { foreach ($x in ($m.Groups[1].Value -split ';')) { if ((S $x)) { [void]$pp.Add((S $x)) } } }
+  foreach ($x in $extraEmails) { [void]$ee.Add([string]$x) }; foreach ($x in $extraPhones) { [void]$pp.Add([string]$x) }
+  $body = [regex]::Replace($base, '(?im)^\s*Other (emails|phones):.*$\n?', '').Trim()
+  $seenE = @{}; $eeF = @(foreach ($x in $ee) { $k = $x.ToLower(); if ($finalEm -notcontains $k -and -not $seenE.ContainsKey($k)) { $seenE[$k] = 1; $x } })
+  $seenP = @{}; $ppF = @(foreach ($x in $pp) { $k = Digits $x; if ($k -and $finalPh -notcontains $k -and -not $seenP.ContainsKey($k)) { $seenP[$k] = 1; $x } })
+  $lines = @(); if ($eeF.Count) { $lines += ('Other emails: ' + ($eeF -join '; ')) }; if ($ppF.Count) { $lines += ('Other phones: ' + ($ppF -join '; ')) }
+  $final = $body; if ($lines.Count) { $final = $(if ($body) { $body + "`n`n" } else { '' }) + ($lines -join "`n") }
+  if ($final -cne $oldNotes) {
+    if ($final -eq '' -and -not $AllowRemove) { $patch.Remove('personalNotes') }
+    else {
+      $patch['personalNotes'] = ($final -replace "`n", "`r`n")
+      $i = -1; for ($j = 0; $j -lt $notes.Count; $j++) { if ([string]$notes[$j] -like 'Notes:*') { $i = $j } }
+      $msg = ('Notes: "{0}" -> "{1}"' -f (Short $oldNotes), (Short $final)); if ($i -ge 0) { $notes[$i] = $msg } else { [void]$notes.Add($msg) }
+      foreach ($l in $lines) { [void]$notes.Add(('          (Notes keeps "{0}")' -f (Short $l))) }
+    }
+  } elseif ($patch.ContainsKey('personalNotes')) {
+    $patch.Remove('personalNotes'); $tmp = @($notes | Where-Object { -not ([string]$_ -like 'Notes:*') }); $notes.Clear(); foreach ($t in $tmp) { [void]$notes.Add($t) }
   }
   return @{ patch = $patch; notes = $notes }
 }
@@ -555,7 +620,19 @@ function Pick-File([string]$title, [string]$filter) {
 }
 
 function Do-Apply {
-  if (-not $Path) { $script:Path = Pick-File 'Pick the "Changes for Exchange" file from Contact Workbench' 'CSV files (*.csv)|*.csv' }
+  if (-not $Path) {
+    # v5: use the newest "Changes for Exchange" file in Downloads (or the Exchange folder) without asking
+    $cands = @(foreach ($d in @((Join-Path $env:USERPROFILE 'Downloads'), $OutDir)) { if (Test-Path $d) { Get-ChildItem -Path $d -Filter '*.csv' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '(?i)changes.?for.?exchange' } } })
+    $newest = $cands | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($newest) {
+      $script:Path = $newest.FullName
+      Say ('Using your newest Changes for Exchange file: ' + $newest.Name + '  (saved ' + $newest.LastWriteTime.ToString('MMM d, h:mm tt') + ')') 'Green'
+    } else {
+      Say 'No "Changes for Exchange" file found in Downloads.' 'Yellow'
+      Say 'In Contact Workbench, open the Export page and tap "Download changes for Exchange", then choose 2 again.' 'Yellow'
+      return
+    }
+  }
   if (-not $Path -or -not (Test-Path $Path)) { Say 'No file picked, so nothing was changed.' 'Yellow'; return }
   $rows = @(Import-Csv -Path $Path -Encoding UTF8)
   if ($rows.Count -eq 0 -or -not $rows[0].PSObject.Properties['Action'] -or -not $rows[0].PSObject.Properties['Exchange Id']) {

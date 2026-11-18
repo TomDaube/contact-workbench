@@ -2,6 +2,19 @@
 
 Every version of the app and what changed in it, newest first.
 
+## Version 177 (Nov 18, 2026)
+- Safety: Changes for Exchange leaves out contacts in a Zoho CRM folder in Exchange (copies made by Zoho's Microsoft 365 sync), so they are never changed or deleted. The Exchange box on Export says how many were left out; a tick box includes them if Zoho's sync is off.
+- New Format › Exchange folder on Contacts (🛡 marks Zoho CRM folders).
+
+## Version 176 (Nov 17, 2026)
+- Exchange helper version 5 (updated): finds the newest Changes for Exchange file in Downloads; keeps existing emails first; skips junk names and Zoho tags; skips birthdays under 5 years ago; keeps Contact Imported blocks and divider lines out of Notes; keeps existing Notes.
+
+## Version 175 (Nov 17, 2026)
+- Extra emails and phones that Exchange has no room for go into the contact's Notes as Other emails / Other phones. Helper version 5 does the same and keeps Exchange's mobile number.
+
+## Version 174 (Nov 16, 2026)
+- The app is now called Combined Contact Workbench, to tell it apart from Personal Contact Workbench.
+
 ## Version 173 (Nov 16, 2026)
 - New Send changes to Zoho (Export page): fills empty Zoho fields with what came in from Exchange, after a per-record preview; try the first 10 or send all. Optional: also replace names, company, job title, department and web page. Nothing is deleted in Zoho. The app's Zoho connector now also allows updateRecords.
 
